@@ -29,7 +29,7 @@ const getUnixInterface = async (iFace) => {
 
     const iFaceResult = stdout
 
-    return parse(iFaceResult)
+    return unixParser(iFaceResult)
   } catch (err) {
     console.error('Error:', err)
     throw err
@@ -59,7 +59,7 @@ const getUnixParams = async () => {
   console.log(parsedArray)
 }
 
-const parse = (str) => {
+const unixParser = (str) => {
   const formatReturn = {}
   const lines = str.split(/\n\t|\n/)
 
@@ -91,30 +91,14 @@ const parse = (str) => {
   return formatReturn
 }
 
-const getWindowsInterfaces = async () => {
-  try {
-    // Use the 'ipconfig' command to get network interfaces in Windows
-    const { stdout } = await exec('ipconfig')
-
-    const interfaces = stdout
-      .split('\n')
-      .filter((line) => line.includes('Ethernet adapter') || line.includes('Wireless LAN adapter'))
-      .map((line) => line.trim().split(':')[1])
-
-    return interfaces
-  } catch (err) {
-    console.error('Error:', err)
-    throw err
-  }
-}
-
 // Function to get a specific network interface details in Windows
-const getWindowsInterface = async (iFace) => {
+const getWindowsInterfaces = async (iFace) => {
   try {
     // Use the 'ipconfig /all' command to get details of all network interfaces in Windows
     const { stdout } = await exec('ipconfig /all')
 
-    const iFaceResult = stdout.split(`\r\n${iFace}\r\n`)[1]
+    const iFaceResult = windowsParser(stdout)
+    console.log(iFaceResult)
 
     return iFaceResult
   } catch (err) {
@@ -122,3 +106,85 @@ const getWindowsInterface = async (iFace) => {
     throw err
   }
 }
+
+const getWindowsParams = async () => {
+  const parsedArray = []
+  const interfaces = await getWindowsInterfaces()
+    .then(interfaces => interfaces)
+    .catch(err => console.log(err))
+
+  for (const paramsObj of interfaces) {
+    const empty = !Object.keys(paramsObj).length
+    const hasNoMacAdress = !Object.prototype.hasOwnProperty.call(paramsObj, 'macAdress')
+
+    console.log({ empty, hasNoMacAdress })
+
+    if (empty || hasNoMacAdress) continue
+    const name = paramsObj.name
+    delete paramsObj.name
+
+    parsedArray.push({ [name]: paramsObj })
+  }
+  console.log(parsedArray)
+}
+
+const windowsParser = () => {
+  const macAdressRegex = /[A-Fa-f0-9]{2}(\-[A-Fa-f0-9]{2}){5}/
+  const dnsRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
+  const ipv6ValidRegex = /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/
+  const ipv4ValidRegex = /(?:^|[^.\d])((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?![.\d])/g
+  const ipv4AdressRegex = /IPv4\s/
+  const ipv6AdressRegex = /IPv6\s/
+
+  const newString = JSON.stringify(Object.values(stdout)[0]).replace(/['+]/g, '')
+  const newStringArray = newString.split(/\\r\\n/)
+  const extractNames = []
+  const cleanedArray = []
+  const paramsArray = []
+
+  const trashString = ['"', '', ' ']
+
+  for (const line of newStringArray) {
+    if (trashString.includes(line)) continue
+    cleanedArray.push(line.trim())
+  }
+
+  for (const line of cleanedArray) {
+    if (line.includes('.') || dnsRegex.test(line)) continue
+    extractNames.push(line.replace(/[:]/g, '').trim())
+  }
+
+  let oneParam = {}
+
+  for (const line of cleanedArray) {
+    const cleanedName = line.replace(/[:]/g, '').trim()
+    if (extractNames.includes(cleanedName)) {
+      if (line === cleanedArray[0]) {
+        oneParam.name = cleanedName
+        continue
+      }
+      paramsArray.push(oneParam)
+      oneParam = {}
+      oneParam.name = cleanedName
+    }
+
+    if (macAdressRegex.test(line)) {
+      const macAdress = line.match(macAdressRegex)
+      oneParam.macAdress = macAdress[0]
+      continue
+    }
+    if (ipv4AdressRegex.test(line) && ipv4ValidRegex.test(line)) {
+      const ipv4 = line.match(ipv4ValidRegex)
+      oneParam.ipv4 = ipv4[0]
+      continue
+    }
+    if (ipv6AdressRegex.test(line)) {
+      const ipv6 = line.match(ipv6ValidRegex)
+      oneParam.ipv6 = line.slice(ipv6.index, ipv6.index + 20)
+      continue
+    }
+  }
+  return paramsArray
+}
+
+getWindowsParams()
