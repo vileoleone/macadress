@@ -4,9 +4,15 @@ const util = require('node:util')
 
 const exec = util.promisify(cp.exec)
 
-const keyParams = ['ether', 'inet']
+const keyParams = ['ether', 'inet', 'inet6']
 
 const firstQmarkSpace = /:\s(\S+)/
+const macAdressRegex = /[A-Fa-f0-9]{2}(\-[A-Fa-f0-9]{2}){5}/
+const dnsRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
+const ipv6ValidRegex = /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/
+const ipv4ValidRegex = /(?:^|[^.\d])((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?![.\d])/g
+const ipv4AdressRegex = /IPv4\s/
+const ipv6AdressRegex = /IPv6\s/
 
 const getUnixInterfaces = async () => {
   try {
@@ -23,7 +29,7 @@ const getUnixInterfaces = async () => {
   }
 }
 
-const getUnixInterface = async (iFace) => {
+const getUnixSingleInterface = async (iFace) => {
   try {
     const { stdout } = await exec(`/sbin/ifconfig ${iFace}`)
 
@@ -43,7 +49,7 @@ const getUnixParams = async () => {
     .catch(err => console.log(err))
 
   for (const name of interfaceNames) {
-    const interfaceParams = await getUnixInterface(name)
+    const interfaceParams = await getUnixSingleInterface(name)
       .then(params => params)
       .catch(err => console.log(err))
 
@@ -54,8 +60,11 @@ const getUnixParams = async () => {
 
     parsedArray.push({ [name]: interfaceParams })
   }
+  console.log(parsedArray)
   return parsedArray
 }
+
+console.log(getUnixParams())
 
 const unixParser = (str) => {
   const formatReturn = {}
@@ -72,8 +81,14 @@ const unixParser = (str) => {
     let rest = line.split(keyWord)[1].trim()
 
     if (keyWord === 'inet') {
-      keyWord = 'ip'
+      keyWord = 'ipv4'
       rest = rest.split(/\s/)[0]
+    }
+
+    if (keyWord === 'inet6') {
+      keyWord = 'ipv6'
+      const index = rest.split(/\s/)[0].indexOf('%')
+      rest = rest.split(/\s/)[0].slice(0, index)
     }
 
     if (keyWord === 'ether') {
@@ -123,13 +138,6 @@ const getWindowsParams = async () => {
 }
 
 const windowsParser = (stdout) => {
-  const macAdressRegex = /[A-Fa-f0-9]{2}(\-[A-Fa-f0-9]{2}){5}/
-  const dnsRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
-  const ipv6ValidRegex = /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/
-  const ipv4ValidRegex = /(?:^|[^.\d])((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?![.\d])/g
-  const ipv4AdressRegex = /IPv4\s/
-  const ipv6AdressRegex = /IPv6\s/
-
   const newString = JSON.stringify(stdout).replace(/['+]/g, '')
   const newStringArray = newString.split(/\\r\\n/)
   const extractNames = []
@@ -157,6 +165,7 @@ const windowsParser = (stdout) => {
         oneParam.name = cleanedName
         continue
       }
+
       paramsArray.push(oneParam)
       oneParam = {}
       oneParam.name = cleanedName
