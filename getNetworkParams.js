@@ -2,7 +2,6 @@ import os from 'node:os'
 import getLinuxParams from './getLinuxAddress.js'
 import getWindowsParams from './getWindowsAddress.js'
 import getUnixParams from './getUnixAddress.js'
-import { error } from 'node:console'
 
 export const getPlatformParams = async () => {
   console.log(os.platform())
@@ -31,5 +30,4 @@ export const getPlatformParams = async () => {
   return params
 }
 
-const a = await getPlatformParams().then(res => res).catch(err => console.log(err))
-console.log({ a })
+export default getPlatformParams
