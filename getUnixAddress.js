@@ -1,4 +1,3 @@
-const os = require('node:os')
 const cp = require('node:child_process')
 const util = require('node:util')
 
@@ -8,7 +7,7 @@ const keyParams = ['ether', 'inet', 'inet6']
 
 const firstQmarkSpace = /:\s(\S+)/
 
-const getUnixParams = async () => {
+export const getUnixParams = async () => {
   const parsedArray = []
   const interfaceNames = await getUnixInterfaces()
     .then(interfaces => interfaces)
