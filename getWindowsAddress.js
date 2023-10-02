@@ -10,8 +10,8 @@ const ipv4ValidRegex = /(?:^|[^.\d])((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3
 const ipv4AdressRegex = /IPv4\s*Address|endereço\s*IPv4|Endereço\s*IPv4/
 const ipv6AdressRegex = /IPv6\s*Address|endereço\s*IPv6|Endereço\s*IPv6/
 
-export const getWindowsParams = async () => {
-  const parsedArray = []
+const getWindowsParams = async () => {
+  const parsedObject = {}
 
   await getWindowsInterfaces()
     .then(interfaces => {
@@ -23,13 +23,13 @@ export const getWindowsParams = async () => {
         const name = paramsObj.name
         delete paramsObj.name
 
-        parsedArray.push({ [name]: paramsObj })
+        parsedObject[name] = paramsObj
       }
     })
 
     .catch(err => console.log(err))
 
-  return parsedArray
+  return parsedObject
 }
 
 const getWindowsInterfaces = async (iFace) => {

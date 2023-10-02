@@ -7,8 +7,8 @@ const keyParams = ['ether', 'inet', 'inet6']
 
 const firstQmarkSpace = /:\s(\S+)/
 
-export const getUnixParams = async () => {
-  const parsedArray = []
+const getUnixParams = async () => {
+  const parsedObject = {}
   const interfaceNames = await getUnixInterfaces()
     .then(interfaces => interfaces)
     .catch(err => console.log(err))
@@ -23,10 +23,10 @@ export const getUnixParams = async () => {
 
     if (empty || hasNoMacAdress) continue
 
-    parsedArray.push({ [name]: interfaceParams })
+    parsedObject[name] = interfaceParams
   }
-  console.log(parsedArray)
-  return parsedArray
+  console.log(parsedObject)
+  return parsedObject
 }
 
 const getUnixInterfaces = async () => {
@@ -94,3 +94,5 @@ const unixParser = (str) => {
   }
   return formatReturn
 }
+
+getUnixParams()
