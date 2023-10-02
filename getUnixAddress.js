@@ -1,5 +1,5 @@
-const cp = require('node:child_process')
-const util = require('node:util')
+import cp from 'node:child_process'
+import util from 'node:util'
 
 const exec = util.promisify(cp.exec)
 
@@ -7,7 +7,7 @@ const keyParams = ['ether', 'inet', 'inet6']
 
 const firstQmarkSpace = /:\s(\S+)/
 
-const getUnixParams = async () => {
+export const getUnixParams = async () => {
   const parsedObject = {}
   const interfaceNames = await getUnixInterfaces()
     .then(interfaces => interfaces)
@@ -25,7 +25,6 @@ const getUnixParams = async () => {
 
     parsedObject[name] = interfaceParams
   }
-  console.log(parsedObject)
   return parsedObject
 }
 
@@ -95,4 +94,4 @@ const unixParser = (str) => {
   return formatReturn
 }
 
-getUnixParams()
+export default getUnixParams

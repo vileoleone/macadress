@@ -1,5 +1,5 @@
-const cp = require('node:child_process')
-const util = require('node:util')
+import cp from 'node:child_process'
+import util from 'node:util'
 
 const exec = util.promisify(cp.exec)
 
@@ -10,7 +10,7 @@ const ipv4ValidRegex = /(?:^|[^.\d])((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3
 const ipv4AdressRegex = /IPv4\s*Address|endereço\s*IPv4|Endereço\s*IPv4/
 const ipv6AdressRegex = /IPv6\s*Address|endereço\s*IPv6|Endereço\s*IPv6/
 
-const getWindowsParams = async () => {
+export const getWindowsParams = async () => {
   const parsedObject = {}
 
   await getWindowsInterfaces()
@@ -97,3 +97,5 @@ const windowsParser = (stdout) => {
   }
   return paramsArray
 }
+
+export default getWindowsParams

@@ -1,9 +1,9 @@
-const cp = require('node:child_process')
-const util = require('node:util')
+import cp from 'node:child_process'
+import util from 'node:util'
 
 const exec = util.promisify(cp.exec)
 
-const getLinuxParams = async () => {
+export const getLinuxParams = async () => {
   const parsedArray = {}
   const interfaceNames = await getLinuxInterfaces()
     .then((interfaces) => interfaces)
@@ -77,3 +77,5 @@ const LinuxParser = (str) => {
 
   return formatReturn
 }
+
+export default getLinuxParams
