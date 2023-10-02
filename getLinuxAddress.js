@@ -3,7 +3,7 @@ const util = require('node:util')
 
 const exec = util.promisify(cp.exec)
 
-export const getLinuxParams = async () => {
+const getLinuxParams = async () => {
   const parsedArray = []
   const interfaceNames = await getLinuxInterfaces()
     .then(interfaces => interfaces)
@@ -26,14 +26,16 @@ const getLinuxInterfaces = async () => {
 
     const interfaces = stdout
       .split('\n')
-      .map((iFace) => iFace.trim())
-    console.log({ interfaces })
+      .filter((iFace) => iFace !== '')
+
     return interfaces
   } catch (err) {
     console.error('Error:', err)
     throw err
   }
 }
+
+getLinuxInterfaces()
 
 const getLinuxSingleInterface = async (iFace) => {
   try {
